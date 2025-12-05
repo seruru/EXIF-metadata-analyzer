@@ -5,17 +5,16 @@ import threading
 import csv
 import datetime
 import time
-import io  # <--- ВАЖНО: Нужно для чтения миниатюр из EXIF
+import io
 
-# Импорт библиотек
 import exifread
 from PIL import Image, ImageTk, ImageFile
 
-# Разрешаем загрузку "обрезанных" изображений (помогает с некоторыми jpg)
+# Разрешаем загрузку обрезанных или странных изображений (фикс проблемы с предпросмотром)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-# --- ХЕЛПЕРЫ ДЛЯ РАБОТЫ С GPS ---
+# ХЕЛПЕРЫ ДЛЯ РАБОТЫ С GPS
 def _convert_to_degrees(value):
     d = float(value.values[0].num) / float(value.values[0].den)
     m = float(value.values[1].num) / float(value.values[1].den)
@@ -109,18 +108,18 @@ class PhotoAnalyzerApp(tk.Tk):
             return str(date_str)
 
     def _build_ui(self):
-        # 1. ЛЕВАЯ ПАНЕЛЬ (SIDEBAR)
+        # 1. ЛЕВАЯ ПАНЕЛЬ (sidebar)
         sidebar = ttk.Frame(self, style="Panel.TFrame", padding=15)
         sidebar.pack(side="left", fill="y")
 
-        # --- Выбор папки ---
+        # Выбор папки
         ttk.Label(sidebar, text="Источник данных", style="Title.TLabel").pack(anchor="w", pady=(0, 5))
         self.lbl_path = ttk.Label(sidebar, text="Папка не выбрана", wraplength=200, font=("Segoe UI", 9, "italic"))
         self.lbl_path.pack(anchor="w", pady=(0, 10))
 
         ttk.Button(sidebar, text="📂 Обзор...", command=self.select_folder).pack(fill="x", pady=(0, 10))
 
-        # --- Галочка: Рекурсия (с испраленным видом) ---
+        # Галочка: Рекурсия
         self.var_recursive = tk.BooleanVar(value=True)
         tk.Checkbutton(sidebar, text="Рекурсивный поиск", variable=self.var_recursive,
                        bg=self.colors["panel"],  # Фон (как у панели)
@@ -133,7 +132,7 @@ class PhotoAnalyzerApp(tk.Tk):
 
         ttk.Separator(sidebar, orient="horizontal").pack(fill="x", pady=20)
 
-        # --- Фильтры форматов (с испраленным видом) ---
+        # Фильтры форматов
         ttk.Label(sidebar, text="Форматы файлов", style="Title.TLabel").pack(anchor="w", pady=(0, 5))
         self.filter_vars = {
             ".jpg": tk.BooleanVar(value=True),
@@ -154,14 +153,14 @@ class PhotoAnalyzerApp(tk.Tk):
 
         ttk.Separator(sidebar, orient="horizontal").pack(fill="x", pady=20)
 
-        # --- Кнопка старт ---
+        # Кнопка старт
         self.btn_start = ttk.Button(sidebar, text="НАЧАТЬ АНАЛИЗ", style="Accent.TButton",
                                     command=self.start_analysis_thread)
         self.btn_start.pack(fill="x", pady=10)
 
         ttk.Separator(sidebar, orient="horizontal").pack(fill="x", pady=20)
 
-        # --- Экспорт ---
+        # Экспорт
         ttk.Label(sidebar, text="Экспорт", style="Title.TLabel").pack(anchor="w", pady=(0, 5))
         self.btn_csv = ttk.Button(sidebar, text="💾 CSV", state="disabled", command=self.export_csv)
         self.btn_csv.pack(fill="x", pady=2)
@@ -231,7 +230,7 @@ class PhotoAnalyzerApp(tk.Tk):
         self.log_text.pack(fill="x")
         self.log_text.config(state="disabled")
 
-    # --- ЛОГИКА ---
+    # ЛОГИКА
     def log(self, message):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.log_text.config(state="normal")
@@ -336,13 +335,11 @@ class PhotoAnalyzerApp(tk.Tk):
     def add_row_to_table(self, meta):
         lat_str = f"{meta['lat']:.5f}" if meta['lat'] else "-"
         lon_str = f"{meta['lon']:.5f}" if meta['lon'] else "-"
-
-        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили meta['camera'] в values ---
         item_id = self.tree.insert("", "end", values=(
             meta['filename'],
             meta['size'],
             meta['date'],
-            meta['camera'],  # <--- Вот оно!
+            meta['camera'],
             lat_str,
             lon_str
         ))
@@ -360,7 +357,7 @@ class PhotoAnalyzerApp(tk.Tk):
         self.lbl_status.config(text="Готово")
         messagebox.showinfo("Готово", "Анализ завершен!")
 
-    # --- ОБРАБОТЧИК КЛИКА ПО СТРОКЕ (С фиксом для iPhone) ---
+    # ОБРАБОТЧИК КЛИКА ПО СТРОКЕ (С фиксом для iPhone)
     def on_row_select(self, event):
         selected_items = self.tree.selection()
         if not selected_items: return
@@ -385,7 +382,7 @@ class PhotoAnalyzerApp(tk.Tk):
         self.txt_details.insert("1.0", info)
         self.txt_details.config(state="disabled")
 
-        # 2. Картинка (Smart load)
+        # 2. Картинка Smart load)
         image_loaded = False
 
         # Способ 1: Прямое чтение
@@ -401,7 +398,7 @@ class PhotoAnalyzerApp(tk.Tk):
                 self.lbl_preview.config(image=photo, text="")
                 image_loaded = True
         except Exception:
-            pass  # Молчим, попробуем миниатюру
+            pass
 
         # Способ 2: Миниатюра из EXIF
         if not image_loaded:
